@@ -16,9 +16,8 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: Colors.main.p1,
           paddingTop: 16,
-          height: horizontalScaleConversion(90)
+          height: horizontalScaleConversion(90),
         },
-         
       }}
     >
       <Tabs.Screen
@@ -30,7 +29,6 @@ export default function TabLayout() {
           ),
         }}
       />
-      
     </Tabs>
   );
 }
