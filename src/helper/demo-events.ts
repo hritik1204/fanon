@@ -6,7 +6,7 @@ import { db } from "@/src/firebase";
 const demoImages = [
   "https://res.cloudinary.com/demo/image/upload/f_auto,q_auto,w_800,h_450,c_fill/sample.jpg",
   "https://res.cloudinary.com/demo/image/upload/f_auto,q_auto,w_800,h_450,c_fill/beach.jpg",
-  "https://res.cloudinary.com/demo/image/upload/f_auto,q_auto,w_800,h_450,c_fill/dog.jpg",
+  // "https://res.cloudinary.com/demo/image/upload/f_auto,q_auto,w_800,h_450,c_fill/dog.jpg",
   "https://res.cloudinary.com/demo/image/upload/f_auto,q_auto,w_800,h_450,c_fill/kitten.jpg",
 ];
 
