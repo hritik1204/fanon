@@ -7,136 +7,27 @@ import {
   FlatList,
   ActivityIndicator,
 } from "react-native";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback } from "react";
 import { Colors } from "@/src/constants/theme";
 import { useRouter } from "expo-router";
+import { DocumentData } from "firebase/firestore";
 
-import {
-  collection,
-  query,
-  orderBy,
-  limit,
-  DocumentData,
-  QueryDocumentSnapshot,
-  onSnapshot,
-  startAfter,
-  getDocs,
-  getCountFromServer,
-} from "firebase/firestore";
-import { db } from "@/src/firebase";
-import {
-  addNotificationResponseListener,
-  scheduleLocalNotification,
-} from "@/src/utils/notifcation";
-import { seedDemoEvents } from "@/src/helper/demo-events";
+import { scheduleLocalNotification } from "@/src/utils/notifcation";
 import { horizontalScaleConversion } from "@/src/utils";
 import { doSignOut } from "@/src/auth";
-
-const PAGE_SIZE = 8;
+import { useEvents } from "@/src/hooks/useEvents";
+import { useNotifications } from "@/src/hooks/useNotifications";
+import { useDemoData } from "@/src/hooks/useDemoData";
 
 export const HomeBody = () => {
   const router = useRouter();
-  const [events, setEvents] = useState<DocumentData[]>([]);
-  const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [seeding, setSeeding] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-
-  const eventCountRef = useRef<number>(0);
-
-  useEffect(() => {
-    // --- Real-time listener for the first page ---
-    const q = query(
-      collection(db, "events"),
-      orderBy("startTime", "asc"),
-      limit(PAGE_SIZE)
-    );
-
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        const docs: any[] = [];
-        snap.forEach((d) => docs.push({ id: d.id, ...d.data() }));
-
-        setEvents(docs);
-        if (!snap.empty) {
-          setLastDoc(snap.docs[snap.docs.length - 1]);
-
-          setHasMore(snap.size >= PAGE_SIZE);
-        } else {
-          setHasMore(false);
-        }
-      },
-      (err) => {
-        console.warn("Realtime listener error:", err);
-      }
-    );
-
-    // --- Push notification deep link listener ---
-    let sub: any;
-    (async () => {
-      sub = await addNotificationResponseListener((response) => {
-        const eventId = response.notification.request.content.data?.eventId;
-        if (eventId) router.push(`/event/${eventId}` as any);
-      });
-    })();
-
-    return () => {
-      unsub();
-      if (sub) sub.remove();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    (async () => {
-      try {
-        const coll = collection(db, "events");
-        const snapshot = await getCountFromServer(coll);
-        if (isMounted) {
-          eventCountRef.current = snapshot.data().count;
-        }
-      } catch (e) {
-        console.warn("Failed to get total events count", e);
-      }
-    })();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  async function loadMore() {
-    if (loading || !hasMore || !lastDoc) return;
-    setLoading(true);
-    try {
-      const q = query(
-        collection(db, "events"),
-        orderBy("startTime", "asc"),
-        startAfter(lastDoc),
-        limit(PAGE_SIZE)
-      );
-
-      const snap = await getDocs(q);
-      const docs: any[] = [];
-      snap.forEach((d) => docs.push({ id: d.id, ...d.data() }));
-
-      setEvents((prev) => [...prev, ...docs]);
-
-      if (!snap.empty) {
-        setLastDoc(snap.docs[snap.docs.length - 1]);
-        if (snap.size < PAGE_SIZE) setHasMore(false);
-      } else {
-        setHasMore(false);
-      }
-    } catch (e) {
-      console.warn(e);
-    } finally {
-      setLoading(false);
-    }
-  }
+  
+  // Custom hooks 
+  const { events, loading, eventCountRef, loadMore, updateEventCount } = useEvents();
+  const { seeding, getDemoData } = useDemoData(eventCountRef, updateEventCount);
+  
+  // Setup notification listener
+  useNotifications();
 
   function toDate(tsOrDate: any) {
     if (!tsOrDate) return null;
@@ -149,16 +40,6 @@ export const HomeBody = () => {
     return new Date(tsOrDate);
   }
 
-  async function getDemoData() {
-    setSeeding(true);
-    await seedDemoEvents(5, eventCountRef.current);
-    try {
-      const snapshot = await getCountFromServer(collection(db, "events"));
-      eventCountRef.current = snapshot.data().count;
-    } finally {
-      setSeeding(false);
-    }
-  }
 
   async function handleSignOut() {
     try {
@@ -174,7 +55,7 @@ export const HomeBody = () => {
   const getItemLayout = useCallback(
     (_data: any, index: number) => ({
       length: horizontalScaleConversion(190),
-      offset: 72 * index,
+      offset: horizontalScaleConversion(72) * index,
       index,
     }),
     []
@@ -206,8 +87,8 @@ export const HomeBody = () => {
               <View
                 style={{
                   borderRadius: 100,
-                  width: 10,
-                  height: 10,
+                  width: horizontalScaleConversion(10),
+                  height: horizontalScaleConversion(10),
                   backgroundColor: isLive
                     ? "green"
                     : isScheduled
@@ -236,7 +117,7 @@ export const HomeBody = () => {
         </View>
       </TouchableOpacity>
     );
-  }, []);
+  }, [router]);
 
   return (
     <View style={styles.container}>
@@ -248,9 +129,9 @@ export const HomeBody = () => {
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
         getItemLayout={getItemLayout}
-        windowSize={5}
-        initialNumToRender={10}
-        maxToRenderPerBatch={10}
+        windowSize={horizontalScaleConversion(5)}
+        initialNumToRender={horizontalScaleConversion(10)}
+        maxToRenderPerBatch={horizontalScaleConversion(10)}
         removeClippedSubviews={true}
         ListFooterComponent={
           loading ? (

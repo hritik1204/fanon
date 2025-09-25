@@ -7,6 +7,10 @@ import { View, ActivityIndicator } from "react-native";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth, db } from "@/src/firebase";
 import { doc, getDoc } from "firebase/firestore";
+import * as SplashScreen from "expo-splash-screen";
+
+// Prevent the splash screen from auto-hiding before asset loading is complete
+SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -25,6 +29,7 @@ export default function RootLayout() {
      
       if (!user) {
         setLoading(false);
+        SplashScreen.hideAsync();
         if (pathname !== "/sign-in") router.replace("/sign-in");
         return;
       }
@@ -36,12 +41,14 @@ export default function RootLayout() {
 
         if (snap.exists()) {
           setLoading(false);
+          SplashScreen.hideAsync();
           // if currently at sign-in, send them to home
           if (pathname === "/sign-in") router.replace("/(tabs)");
         } else {
           // profile is missing in Firestore
           await signOut(auth);
           setLoading(false);
+          SplashScreen.hideAsync();
           if (pathname !== "/sign-in") router.replace("/sign-in");
         }
       } catch (err) {
@@ -49,8 +56,11 @@ export default function RootLayout() {
 
         try {
           await signOut(auth);
-        } catch (e) {}
+        } catch {
+          // Ignore sign out errors
+        }
         setLoading(false);
+        SplashScreen.hideAsync();
         if (pathname !== "/sign-in") router.replace("/sign-in");
       }
     });
