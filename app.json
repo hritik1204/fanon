@@ -18,12 +18,11 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/fanon_splash.jpg",
+        "foregroundImage": "./assets/images/fanon-icon.png",
         "backgroundColor": "#E6F4FE"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "package": "com.immortalcodes.fanonmobile"
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "static",
@@ -41,6 +40,14 @@
           "dark": {
             "backgroundColor": "#121212"
           }
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/fanon-icon.png",
+          "color": "#3B82F6",
+          "defaultChannel": "default"
         }
       ]
     ],
