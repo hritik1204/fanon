@@ -15,11 +15,19 @@ export const Header = ({
   showBackButton?: boolean;
   showSettingsButton?: boolean;
 }) => {
+
+  const handleBackPress = () => {
+    if(router.canGoBack()) {
+      router.back()
+    } else {
+      router.replace("/")
+    }
+  }
   return (
     <View style={styles.container}>
       <View style={styles.leftContainer}>
         {showBackButton && (
-          <TouchableOpacity onPress={() => router.back()}>
+          <TouchableOpacity onPress={handleBackPress}>
             <Feather name="arrow-left" size={24} color={Colors.main.p2} />
           </TouchableOpacity>
         )}
