@@ -15,7 +15,8 @@ export async function seedDemoEvents(count = 5, startFrom: number) {
   const created: string[] = [];
 
   for (let i = startFrom; i < count + startFrom; i++) {
-    const start = new Date(Date.now() + (i + 1) * 60 * 60 * 1000); // 1h, 2h, 3h later...
+    // schedule events 15min, 30min, 45min
+    const start = new Date(Date.now() + (i + 1) * 15 * 60 * 1000); 
     const imageUrl = demoImages[i % demoImages.length];
 
     try {
@@ -37,3 +38,4 @@ export async function seedDemoEvents(count = 5, startFrom: number) {
   console.log(`✅ Seeded ${created.length} demo events`);
   return created;
 }
+
