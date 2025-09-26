@@ -26,49 +26,50 @@ export default function RootLayout() {
   useNotifications();
 
   // --- Auth state handling & splash gating ---
-  useEffect(() => {
-    let mounted = true;
+ // --- Auth state handling & splash gating ---
+useEffect(() => {
+  let mounted = true;
 
-    const unsub = onAuthStateChanged(auth, async (user) => {
-      if (!mounted) return;
+  const unsub = onAuthStateChanged(auth, async (user) => {
+    if (!mounted) return;
 
-      if (!user) {
+    if (!user) {
+      setLoading(false);
+      SplashScreen.hideAsync();
+      if (pathname !== "/sign-in") router.replace("/sign-in");
+      return;
+    }
+
+    try {
+      const uRef = doc(db, "users", user.uid);
+      const snap = await getDoc(uRef);
+
+      if (snap.exists()) {
         setLoading(false);
         SplashScreen.hideAsync();
-        if (pathname !== "/sign-in") router.replace("/sign-in");
-        return;
-      }
-
-      try {
-        const uRef = doc(db, "users", user.uid);
-        const snap = await getDoc(uRef);
-
-        if (snap.exists()) {
-          setLoading(false);
-          SplashScreen.hideAsync();
-          if (pathname === "/sign-in") router.replace("/(tabs)");
-        } else {
-          await signOut(auth);
-          setLoading(false);
-          SplashScreen.hideAsync();
-          if (pathname !== "/sign-in") router.replace("/sign-in");
-        }
-      } catch {
-        try {
-          await signOut(auth);
-        } catch {}
+        if (pathname === "/sign-in") router.replace("/(tabs)");
+      } else {
+        await signOut(auth);
         setLoading(false);
         SplashScreen.hideAsync();
         if (pathname !== "/sign-in") router.replace("/sign-in");
       }
-    });
+    } catch {
+      try { await signOut(auth); } catch {}
+      setLoading(false);
+      SplashScreen.hideAsync();
+      if (pathname !== "/sign-in") router.replace("/sign-in");
+    }
+  });
 
-    return () => {
-      mounted = false;
-      unsub();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
+  return () => {
+    mounted = false;
+    unsub();
+  };
+// ✅ only run once on mount
+// eslint-disable-next-line react-hooks/exhaustive-deps
+}, []); 
+
 
   if (loading) {
     return (
