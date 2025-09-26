@@ -19,7 +19,7 @@
     "android": {
       "adaptiveIcon": {
         "backgroundImage": "./assets/images/fanon-icon.png",
-        "backgroundColor": "#E6F4FE"
+        "backgroundColor": "#faff00"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
