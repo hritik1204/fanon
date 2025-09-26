@@ -57,7 +57,7 @@ export default function RootLayout() {
           if (pendingEventIdRef.current) {
             const id = pendingEventIdRef.current;
             pendingEventIdRef.current = null;
-            router.replace(`/event/${id}` as any);
+            router.push(`/event?id=${id}` as any);
           } else if (pathname === "/sign-in") {
             router.replace("/(tabs)");
           }

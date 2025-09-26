@@ -92,11 +92,16 @@ export const HomeBody = () => {
         }
       }
 
+      const handleEventCardClick = () => {
+        if (isAdmin || isLive) {
+          router.push(`/event?id=${item.id}` as any);
+        } else {
+          Alert.alert("Event not live", "This event is not live yet.");
+        }
+      };
+
       return (
-        <TouchableOpacity
-          onPress={() => router.push(`/event?id=${item.id}` as any)}
-          style={[styles.card]}
-        >
+        <TouchableOpacity onPress={handleEventCardClick} style={[styles.card]}>
           <Image source={{ uri: item.imageUrl }} style={styles.image} />
           <View style={styles.info}>
             <View>

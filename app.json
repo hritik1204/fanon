@@ -11,14 +11,14 @@
     "splash": {
       "image": "./assets/images/fanon_splash.jpg",
       "resizeMode": "cover",
-      "backgroundColor": "#121212"
+      "backgroundColor": "#faff00"
     },
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundImage": "./assets/images/fanon-icon.png",
+        "foregroundImage": "./assets/images/fanon-icon.png",
         "backgroundColor": "#faff00"
       },
       "edgeToEdgeEnabled": true,
@@ -31,17 +31,6 @@
     },
     "plugins": [
       "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/fanon_splash.jpg",
-          "resizeMode": "cover",
-          "backgroundColor": "#121212",
-          "dark": {
-            "backgroundColor": "#121212"
-          }
-        }
-      ],
       [
         "expo-notifications",
         {
