@@ -1,16 +1,21 @@
-// app/_layout.tsx (or wherever your RootLayout lives)
+// app/_layout.tsx
 import { Stack, useRouter, usePathname } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth, db } from "@/src/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import * as SplashScreen from "expo-splash-screen";
-import { getLastNotificationResponseAsync } from "@/src/utils/notifcation";
 
-// Prevent the splash screen from auto-hiding before asset loading is complete
+import {
+  getLastNotificationResponse,
+  addNotificationResponseListener,
+  setupNotificationChannels,
+} from "@/src/utils/notifcation";
+
+// Prevent splash from auto-hiding before setup
 SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
@@ -20,14 +25,19 @@ export const unstable_settings = {
 export default function RootLayout() {
   const router = useRouter();
   const pathname = usePathname();
-  const [loading, setLoading] = useState(true);
 
+  const [loading, setLoading] = useState(true);
+  const pendingEventIdRef = useRef<string | null>(null);
+  const authReadyRef = useRef(false);
+
+  // --- Auth state handling ---
   useEffect(() => {
     let mounted = true;
 
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!mounted) return;
-     
+      authReadyRef.current = true;
+
       if (!user) {
         setLoading(false);
         SplashScreen.hideAsync();
@@ -35,7 +45,6 @@ export default function RootLayout() {
         return;
       }
 
-      // If we have an authenticated user, verify user profile exists in Firestore
       try {
         const uRef = doc(db, "users", user.uid);
         const snap = await getDoc(uRef);
@@ -43,20 +52,17 @@ export default function RootLayout() {
         if (snap.exists()) {
           setLoading(false);
           SplashScreen.hideAsync();
-          // if currently at sign-in, send them to home
-          if (pathname === "/sign-in") router.replace("/(tabs)");
 
-          // Handle cold-start notification deep link
-          try {
-            const response = await getLastNotificationResponseAsync();
-            const eventId = response?.notification?.request?.content?.data?.eventId;
-            if (eventId) {
-              router.replace(`/event?id=${eventId}` as any);
-              return;
-            }
-          } catch {}
+          // Cold start notification navigation
+          if (pendingEventIdRef.current) {
+            const id = pendingEventIdRef.current;
+            pendingEventIdRef.current = null;
+            router.replace(`/event/${id}` as any);
+          } else if (pathname === "/sign-in") {
+            router.replace("/(tabs)");
+          }
         } else {
-          // profile is missing in Firestore
+          // No Firestore profile → force logout
           await signOut(auth);
           setLoading(false);
           SplashScreen.hideAsync();
@@ -67,9 +73,7 @@ export default function RootLayout() {
 
         try {
           await signOut(auth);
-        } catch {
-          // Ignore sign out errors
-        }
+        } catch {}
         setLoading(false);
         SplashScreen.hideAsync();
         if (pathname !== "/sign-in") router.replace("/sign-in");
@@ -80,9 +84,39 @@ export default function RootLayout() {
       mounted = false;
       unsub();
     };
-
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
+
+  // --- Notifications handling ---
+  useEffect(() => {
+    let sub: { remove: () => void } | undefined;
+
+    (async () => {
+      await setupNotificationChannels();
+
+      // 1. Cold start case
+      const last = await getLastNotificationResponse();
+      const coldEventId =
+        last?.notification?.request?.content?.data?.eventId as string | undefined;
+
+      if (coldEventId) {
+        if (authReadyRef.current && auth.currentUser) {
+          router.replace(`/event/${coldEventId}` as any);
+        } else {
+          pendingEventIdRef.current = coldEventId;
+        }
+      }
+
+      // 2. Runtime taps
+      sub = await addNotificationResponseListener((response) => {
+        const eventId =
+          response.notification.request.content.data?.eventId as string | undefined;
+        if (eventId) router.push(`/event/${eventId}` as any);
+      });
+    })();
+
+    return () => sub?.remove?.();
+  }, [router]);
 
   if (loading) {
     return (
