@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/fanon_splash.jpg",
-      "resizeMode": "contain",
+      "resizeMode": "cover",
       "backgroundColor": "#121212"
     },
     "ios": {
@@ -35,8 +35,7 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/fanon_splash.jpg",
-          "imageWidth": 200,
-          "resizeMode": "contain",
+          "resizeMode": "cover",
           "backgroundColor": "#121212",
           "dark": {
             "backgroundColor": "#121212"
