@@ -112,7 +112,7 @@ export default function RootLayout() {
 
   return (
     <>
-      <Stack>
+      <Stack initialRouteName="(tabs)">
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="sign-in" options={{ headerShown: false }} />
         <Stack.Screen name="event" options={{ headerShown: false }} />
