@@ -8,7 +8,7 @@ import { Colors } from "@/src/constants/theme";
 const HomeScreen = () => {
   return (
     <SafeAreaView style={[styles.container]} edges={["top"]}>
-      <Header headerName="FANON" showBackButton={false}/>
+      <Header headerName="FANON" showBackButton={false} showSettingsButton={true}/>
       <HomeBody />
     </SafeAreaView>
   );

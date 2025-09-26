@@ -6,13 +6,30 @@ import { horizontalScaleConversion } from "@/src/utils";
 import { router } from "expo-router";
 import Feather from "@expo/vector-icons/Feather";
 
-export const Header = ({ headerName, showBackButton = true }: { headerName: string, showBackButton?: boolean }) => {
+export const Header = ({
+  headerName,
+  showBackButton = true,
+  showSettingsButton = false,
+}: {
+  headerName: string;
+  showBackButton?: boolean;
+  showSettingsButton?: boolean;
+}) => {
   return (
     <View style={styles.container}>
-      {showBackButton && <TouchableOpacity onPress={() => router.back()}>
-        <Feather name="arrow-left" size={24} color={Colors.main.p2} />
-      </TouchableOpacity>}
-      <Text style={styles.text}>{headerName}</Text>
+      <View style={styles.leftContainer}>
+        {showBackButton && (
+          <TouchableOpacity onPress={() => router.back()}>
+            <Feather name="arrow-left" size={24} color={Colors.main.p2} />
+          </TouchableOpacity>
+        )}
+        <Text style={styles.text}>{headerName}</Text>
+      </View>
+      {showSettingsButton && (
+        <TouchableOpacity onPress={() => router.push("/settings")}>
+          <Feather name="settings" size={24} color={Colors.main.p2} />
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -24,8 +41,13 @@ const styles = StyleSheet.create({
     paddingVertical: horizontalScaleConversion(12),
     flexDirection: "row",
     alignItems: "center",
-    gap: horizontalScaleConversion(8),
+    justifyContent: "space-between",
     // justifyContent: "space-between",
+  },
+  leftContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: horizontalScaleConversion(8),
   },
   text: {
     color: Colors.main.p2,

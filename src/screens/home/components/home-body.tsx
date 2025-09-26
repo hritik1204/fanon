@@ -6,26 +6,36 @@ import {
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import React, { useCallback } from "react";
 import { Colors } from "@/src/constants/theme";
 import { useRouter } from "expo-router";
-import { DocumentData } from "firebase/firestore";
+import { arrayUnion, doc, DocumentData, updateDoc } from "firebase/firestore";
 
-import { scheduleLocalNotification } from "@/src/utils/notifcation";
+import {
+  requestNotificationPermission,
+  scheduleLocalNotification,
+} from "@/src/utils/notifcation";
 import { horizontalScaleConversion } from "@/src/utils";
-import { doSignOut } from "@/src/auth";
+
 import { useEvents } from "@/src/hooks/useEvents";
 import { useNotifications } from "@/src/hooks/useNotifications";
 import { useDemoData } from "@/src/hooks/useDemoData";
+import { auth, db } from "@/src/firebase";
+import { useUserProfile } from "@/src/hooks/useUserProfile";
+import { useUserRoles } from "@/src/hooks/useUserRoles";
 
 export const HomeBody = () => {
   const router = useRouter();
-  
-  // Custom hooks 
-  const { events, loading, eventCountRef, loadMore, updateEventCount } = useEvents();
+
+  // Custom hooks
+  const { events, loading, eventCountRef, loadMore, updateEventCount } =
+    useEvents();
   const { seeding, getDemoData } = useDemoData(eventCountRef, updateEventCount);
-  
+  const { userProfile } = useUserProfile();
+  const { isAdmin } = useUserRoles(null, userProfile);
+
   // Setup notification listener
   useNotifications();
 
@@ -40,16 +50,6 @@ export const HomeBody = () => {
     return new Date(tsOrDate);
   }
 
-
-  async function handleSignOut() {
-    try {
-      await doSignOut();
-      router.replace("/sign-in"); // send user back to sign-in
-    } catch (e) {
-      console.warn("Sign-out failed", e);
-    }
-  }
-
   const keyExtractor = useCallback((item: DocumentData) => String(item.id), []);
 
   const getItemLayout = useCallback(
@@ -61,63 +61,98 @@ export const HomeBody = () => {
     []
   );
 
-  const renderItem = useCallback(({ item }: { item: DocumentData }) => {
-    const isLive = item.state === "live";
-    const isScheduled = item.state === "scheduled";
-    const eventStatus = isLive ? "Live" : isScheduled ? "Scheduled" : "Ended";
-    return (
-      <TouchableOpacity
-        onPress={() => router.push(`/event?id=${item.id}` as any)}
-        style={[styles.card]}
-      >
-        <Image source={{ uri: item.imageUrl }} style={styles.image} />
-        <View style={styles.info}>
-          <View>
-            <Text style={styles.title}>{item.title}</Text>
-            <Text style={styles.subtitle}>
-              {toDate(item.startTime)?.toLocaleString(undefined, {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-                hour: "numeric",
-                minute: "2-digit",
-              }) ?? "TBD"}
-            </Text>
-            <View style={styles.eventStatus}>
-              <View
-                style={{
-                  borderRadius: 100,
-                  width: horizontalScaleConversion(10),
-                  height: horizontalScaleConversion(10),
-                  backgroundColor: isLive
-                    ? "green"
-                    : isScheduled
-                    ? "yellow"
-                    : "red",
-                }}
-              />
-              <Text style={styles.subtitle}>{eventStatus}</Text>
-            </View>
-          </View>
+  const renderItem = useCallback(
+    ({ item }: { item: DocumentData }) => {
+      const uid = auth.currentUser?.uid;
+      const alreadyNotified = item.notifiedUsers?.includes(uid);
 
-          <TouchableOpacity
-            style={styles.btn}
-            onPress={() => scheduleLocalNotification(item)}
-          >
-            <Text style={{ color: "white" }}>Notify Me</Text>
-          </TouchableOpacity>
-          {/* <View style={{ width: 12 }} /> */}
-          {/* <TouchableOpacity
+      const isLive = item.state === "live";
+      const isScheduled = item.state === "scheduled";
+      const eventStatus = isLive ? "Live" : isScheduled ? "Scheduled" : "Ended";
+
+      async function onNotify() {
+        if (!uid) {
+          Alert.alert("Login required", "Please sign in to set notifications.");
+          return;
+        }
+        const granted = await requestNotificationPermission();
+        if (!granted) return;
+
+        try {
+          // schedule local notification
+          await scheduleLocalNotification(item);
+
+          // update Firestore
+          const eRef = doc(db, "events", item.id);
+          await updateDoc(eRef, {
+            notifiedUsers: arrayUnion(uid),
+          });
+        } catch (err) {
+          console.warn("Notify error", err);
+        }
+      }
+
+      return (
+        <TouchableOpacity
+          onPress={() => router.push(`/event?id=${item.id}` as any)}
+          style={[styles.card]}
+        >
+          <Image source={{ uri: item.imageUrl }} style={styles.image} />
+          <View style={styles.info}>
+            <View>
+              <Text style={styles.title}>{item.title}</Text>
+              <Text style={styles.subtitle}>
+                {toDate(item.startTime)?.toLocaleString(undefined, {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                }) ?? "TBD"}
+              </Text>
+              <View style={styles.eventStatus}>
+                <View
+                  style={{
+                    borderRadius: 100,
+                    width: horizontalScaleConversion(10),
+                    height: horizontalScaleConversion(10),
+                    backgroundColor: isLive
+                      ? "green"
+                      : isScheduled
+                      ? "yellow"
+                      : "red",
+                  }}
+                />
+                <Text style={styles.subtitle}>{eventStatus}</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.btn,
+                alreadyNotified ? { backgroundColor: "green" } : undefined,
+              ]}
+              onPress={onNotify}
+              disabled={alreadyNotified}
+            >
+              <Text style={{ color: "white" }}>
+                {alreadyNotified ? "Notified" : "Notify Me"}
+              </Text>
+            </TouchableOpacity>
+            {/* <View style={{ width: 12 }} /> */}
+            {/* <TouchableOpacity
               onPress={() => router.push(`/event/${item.id}` as any)}
             >
               <Text style={{ color: "#2b6ebf", alignSelf: "center" }}>
                 Open
               </Text>
             </TouchableOpacity> */}
-        </View>
-      </TouchableOpacity>
-    );
-  }, [router]);
+          </View>
+        </TouchableOpacity>
+      );
+    },
+    [router]
+  );
 
   return (
     <View style={styles.container}>
@@ -142,22 +177,18 @@ export const HomeBody = () => {
         }
         contentContainerStyle={{ padding: horizontalScaleConversion(12) }}
       />
-      <TouchableOpacity
-        style={[styles.btn, { margin: horizontalScaleConversion(12) }]}
-        onPress={handleSignOut}
-        // disabled={seeding}
-      >
-        <Text style={{ color: "white" }}>{"logout"}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.btn, { margin: horizontalScaleConversion(12) }]}
-        onPress={getDemoData}
-        disabled={seeding}
-      >
-        <Text style={{ color: "white" }}>
-          {seeding ? "Seeding..." : "Seed Events"}
-        </Text>
-      </TouchableOpacity>
+
+      {isAdmin ? (
+        <TouchableOpacity
+          style={[styles.btn, { margin: horizontalScaleConversion(12) }]}
+          onPress={getDemoData}
+          disabled={seeding}
+        >
+          <Text style={{ color: "white" }}>
+            {seeding ? "Seeding..." : "Seed Events"}
+          </Text>
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 };
@@ -197,6 +228,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: horizontalScaleConversion(4),
-    marginTop: horizontalScaleConversion(4)
-  }
+    marginTop: horizontalScaleConversion(4),
+  },
 });
