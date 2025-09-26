@@ -25,8 +25,6 @@ export default function RootLayout() {
   // Mount global notifications handler (cold start + runtime taps)
   useNotifications();
 
-  // --- Auth state handling & splash gating ---
- // --- Auth state handling & splash gating ---
 useEffect(() => {
   let mounted = true;
 
