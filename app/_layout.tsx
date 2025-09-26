@@ -101,7 +101,7 @@ export default function RootLayout() {
 
       if (coldEventId) {
         if (authReadyRef.current && auth.currentUser) {
-          router.replace(`/event/${coldEventId}` as any);
+          router.replace(`/event?id=${coldEventId}` as any);
         } else {
           pendingEventIdRef.current = coldEventId;
         }
@@ -111,7 +111,7 @@ export default function RootLayout() {
       sub = await addNotificationResponseListener((response) => {
         const eventId =
           response.notification.request.content.data?.eventId as string | undefined;
-        if (eventId) router.push(`/event/${eventId}` as any);
+        if (eventId) router.push(`/event?id=${eventId}` as any);
       });
     })();
 
