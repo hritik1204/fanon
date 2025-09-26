@@ -115,6 +115,19 @@ export async function addNotificationResponseListener(
     return N.addNotificationResponseReceivedListener(callback);
   }
   
+// Returns the last notification response if the app was opened from a
+// terminated state by tapping a notification. Otherwise returns null.
+export async function getLastNotificationResponseAsync() {
+  const N = await loadNotifications();
+  if (!N) return null;
+  try {
+    const response = await N.getLastNotificationResponseAsync();
+    return response ?? null;
+  } catch {
+    return null;
+  }
+}
+
 
 export async function cancelNotification(id: string) {
   const N = await loadNotifications();

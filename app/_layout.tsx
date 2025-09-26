@@ -8,6 +8,7 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth, db } from "@/src/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import * as SplashScreen from "expo-splash-screen";
+import { getLastNotificationResponseAsync } from "@/src/utils/notifcation";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete
 SplashScreen.preventAutoHideAsync();
@@ -44,6 +45,16 @@ export default function RootLayout() {
           SplashScreen.hideAsync();
           // if currently at sign-in, send them to home
           if (pathname === "/sign-in") router.replace("/(tabs)");
+
+          // Handle cold-start notification deep link
+          try {
+            const response = await getLastNotificationResponseAsync();
+            const eventId = response?.notification?.request?.content?.data?.eventId;
+            if (eventId) {
+              router.replace(`/event?id=${eventId}` as any);
+              return;
+            }
+          } catch {}
         } else {
           // profile is missing in Firestore
           await signOut(auth);
