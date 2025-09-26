@@ -10,8 +10,8 @@ import { doc, getDoc } from "firebase/firestore";
 import * as SplashScreen from "expo-splash-screen";
 
 import {
-  getLastNotificationResponse,
   addNotificationResponseListener,
+  getLastNotificationResponseAsync,
   setupNotificationChannels,
 } from "@/src/utils/notifcation";
 
@@ -95,7 +95,7 @@ export default function RootLayout() {
       await setupNotificationChannels();
 
       // 1. Cold start case
-      const last = await getLastNotificationResponse();
+      const last = await getLastNotificationResponseAsync();
       const coldEventId =
         last?.notification?.request?.content?.data?.eventId as string | undefined;
 
