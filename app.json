@@ -18,11 +18,12 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/fanon-icon.png",
+        "backgroundImage": "./assets/images/fanon-icon.png",
         "backgroundColor": "#E6F4FE"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.immortalcodes.fanonmobile"
     },
     "web": {
       "output": "static",
