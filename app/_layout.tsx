@@ -25,48 +25,58 @@ export default function RootLayout() {
   // Mount global notifications handler (cold start + runtime taps)
   useNotifications();
 
-useEffect(() => {
-  let mounted = true;
+  useEffect(() => {
+    let mounted = true;
 
-  const unsub = onAuthStateChanged(auth, async (user) => {
-    if (!mounted) return;
-
-    if (!user) {
-      setLoading(false);
-      SplashScreen.hideAsync();
-      if (pathname !== "/sign-in") router.replace("/sign-in");
-      return;
-    }
-
-    try {
-      const uRef = doc(db, "users", user.uid);
-      const snap = await getDoc(uRef);
-
-      if (snap.exists()) {
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (!mounted) return;
+     
+      if (!user) {
         setLoading(false);
         SplashScreen.hideAsync();
-        if (pathname === "/sign-in") router.replace("/(tabs)");
-      } else {
-        await signOut(auth);
+        if (pathname !== "/sign-in") router.replace("/sign-in");
+        return;
+      }
+
+      // If we have an authenticated user, verify user profile exists in Firestore
+      try {
+        const uRef = doc(db, "users", user.uid);
+        const snap = await getDoc(uRef);
+
+        if (snap.exists()) {
+          setLoading(false);
+          SplashScreen.hideAsync();
+          // if currently at sign-in, send them to home
+          if (pathname === "/sign-in") router.replace("/(tabs)");
+        } else {
+          // profile is missing in Firestore
+          await signOut(auth);
+          setLoading(false);
+          SplashScreen.hideAsync();
+          if (pathname !== "/sign-in") router.replace("/sign-in");
+        }
+      } catch (err) {
+        console.warn("Error checking user profile:", err);
+
+        try {
+          await signOut(auth);
+        } catch {
+          // Ignore sign out errors
+        }
         setLoading(false);
         SplashScreen.hideAsync();
         if (pathname !== "/sign-in") router.replace("/sign-in");
       }
-    } catch {
-      try { await signOut(auth); } catch {}
-      setLoading(false);
-      SplashScreen.hideAsync();
-      if (pathname !== "/sign-in") router.replace("/sign-in");
-    }
-  });
+    });
 
-  return () => {
-    mounted = false;
-    unsub();
-  };
-// ✅ only run once on mount
-// eslint-disable-next-line react-hooks/exhaustive-deps
-}, []); 
+    return () => {
+      mounted = false;
+      unsub();
+    };
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
 
 
   if (loading) {
