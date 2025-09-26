@@ -1,37 +1,55 @@
-import { useEffect } from "react";
+// src/hooks/useNotifications.ts
+import { useEffect, useRef } from "react";
 import { useRouter } from "expo-router";
+import * as Notifications from "expo-notifications";
 import {
-  addNotificationResponseListener,
   setupNotificationChannels,
+  addNotificationResponseListener,
 } from "@/src/utils/notifcation";
 
-
-export const useNotifications = () => {
+export function useNotifications() {
   const router = useRouter();
+  const lastHandledRef = useRef<{ id: string; at: number } | null>(null);
+  const bootedRef = useRef(false);
+
+  const handle = (resp?: Notifications.NotificationResponse | null) => {
+    const eventId = resp?.notification?.request?.content?.data?.eventId as
+      | string
+      | undefined;
+    if (!eventId) return;
+
+    // de-dupe fast double fires
+    const now = Date.now();
+    const last = lastHandledRef.current;
+    if (last && last.id === eventId && now - last.at < 2000) return;
+    lastHandledRef.current = { id: eventId, at: now };
+
+    // queue to avoid racing router mount
+    queueMicrotask(() => router.replace(`/event?id=${eventId}` as any));
+  };
 
   useEffect(() => {
-    let sub: any;
+    if (bootedRef.current) return;
+    bootedRef.current = true;
 
-    const setupNotificationListener = async () => {
-      // Set up notification channels first
+    let runtimeSub: { remove: () => void } | undefined;
+    let cancelled = false;
+
+    (async () => {
+      // safe to call repeatedly (no-op on iOS)
       await setupNotificationChannels();
 
-      // Set up notification response listener
-      sub = await addNotificationResponseListener((response) => {
-        const eventId = response.notification.request.content.data?.eventId;
+      // ✅ cold start: app launched by tapping a notification
+      const initial = await Notifications.getLastNotificationResponseAsync();
+      if (!cancelled && initial) handle(initial);
 
-        if (eventId) {
-          router.push(`/event?id=${eventId}` as any);
-        }
-      });
-    };
-
-    setupNotificationListener();
+      // ✅ taps while app is foreground/background
+      runtimeSub = await addNotificationResponseListener((resp) => handle(resp));
+    })();
 
     return () => {
-      if (sub) {
-        sub.remove();
-      }
+      cancelled = true;
+      runtimeSub?.remove?.();
     };
   }, [router]);
-};
+}

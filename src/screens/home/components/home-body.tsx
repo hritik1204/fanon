@@ -36,8 +36,7 @@ export const HomeBody = () => {
   const { userProfile } = useUserProfile();
   const { isAdmin } = useUserRoles(null, userProfile);
 
-  // Setup notification listener
-  useNotifications();
+
 
   function toDate(tsOrDate: any) {
     if (!tsOrDate) return null;
