@@ -20,7 +20,6 @@ import {
 import { horizontalScaleConversion } from "@/src/utils";
 
 import { useEvents } from "@/src/hooks/useEvents";
-import { useNotifications } from "@/src/hooks/useNotifications";
 import { useDemoData } from "@/src/hooks/useDemoData";
 import { auth, db } from "@/src/firebase";
 import { useUserProfile } from "@/src/hooks/useUserProfile";
@@ -54,7 +53,7 @@ export const HomeBody = () => {
   const getItemLayout = useCallback(
     (_data: any, index: number) => ({
       length: horizontalScaleConversion(190),
-      offset: horizontalScaleConversion(72) * index,
+      offset: horizontalScaleConversion(190) * index,
       index,
     }),
     []
@@ -168,10 +167,14 @@ export const HomeBody = () => {
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
         getItemLayout={getItemLayout}
-        windowSize={horizontalScaleConversion(5)}
-        initialNumToRender={horizontalScaleConversion(10)}
-        maxToRenderPerBatch={horizontalScaleConversion(10)}
-        removeClippedSubviews={true}
+        windowSize={10}
+        initialNumToRender={5}
+        maxToRenderPerBatch={5}
+        removeClippedSubviews={false}
+        maintainVisibleContentPosition={{
+          minIndexForVisible: 0,
+          autoscrollToTopThreshold: 10,
+        }}
         ListFooterComponent={
           loading ? (
             <ActivityIndicator
