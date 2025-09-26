@@ -1,6 +1,6 @@
 // src/utils/notifications.ts
 import Constants from "expo-constants";
-import { Alert } from "react-native";
+import { Alert, Platform } from "react-native";
 import * as Device from "expo-device";
 
 // Dynamically load expo-notifications only if available
@@ -46,7 +46,10 @@ export async function getPushTokenIfAvailableAsync() {
 export async function scheduleLocalNotification(event: any) {
   const N = await loadNotifications();
   if (!N) {
-    Alert.alert("Reminder", "Can't schedule local notification in Expo Go. Use dev-client.");
+    Alert.alert(
+      "Reminder",
+      "Can't schedule local notification in Expo Go. Use dev-client."
+    );
     return;
   }
 
@@ -72,28 +75,28 @@ export async function scheduleLocalNotification(event: any) {
     return;
   }
 
-  // Schedule notification 5 minutes before event starts
-  const notificationTime = new Date(eventDate.getTime() - 5 * 60 * 1000);
-
-  const dateType = (N.SchedulableTriggerInputTypes.DATE as unknown) as import("expo-notifications").SchedulableTriggerInputTypes.DATE;
+  // Trigger exactly at the event start time
   const trigger: import("expo-notifications").DateTriggerInput = {
-    type: dateType,
-    date: notificationTime
+    type: N.SchedulableTriggerInputTypes.DATE,
+    date: eventDate,
   };
 
   try {
     const notificationId = await N.scheduleNotificationAsync({
       content: {
-        title: `${event.title} starting soon`,
-        body: `Event starts in 5 minutes — open app to join.`,
+        title: `${event.title} is starting now 🎉`,
+        body: `Tap to join the event.`,
         data: { eventId: event.id },
-        sound: 'default',
+        sound: "default",
         priority: N.AndroidNotificationPriority.HIGH,
       },
-      trigger
+      trigger,
     });
-    
-    Alert.alert("Reminder Set", `You'll be notified 5 minutes before "${event.title}" starts.`);
+
+    Alert.alert(
+      "Reminder Set",
+      `You'll be notified when "${event.title}" starts.`
+    );
     return notificationId;
   } catch (error) {
     console.error("Failed to schedule notification:", error);
@@ -117,3 +120,39 @@ export async function cancelNotification(id: string) {
   const N = await loadNotifications();
   if (N) await N.cancelScheduledNotificationAsync(id);
 }
+
+
+
+export async function requestNotificationPermission() {
+  const N = await loadNotifications();
+  if (!N) return false;
+
+  const { status: existingStatus } = await N.getPermissionsAsync();
+  let finalStatus = existingStatus;
+
+  if (existingStatus !== "granted") {
+    const { status } = await N.requestPermissionsAsync();
+    finalStatus = status;
+  }
+
+  if (finalStatus !== "granted") {
+    Alert.alert(
+      "Permission needed",
+      "Enable notifications in settings to get reminders."
+    );
+    return false;
+  }
+
+  // Android channel setup
+  if (Platform.OS === "android") {
+    await N.setNotificationChannelAsync("default", {
+      name: "Default",
+      importance: N.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: "#FF231F7C",
+    });
+  }
+
+  return true;
+}
+
