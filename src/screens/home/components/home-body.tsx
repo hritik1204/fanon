@@ -92,7 +92,7 @@ export const HomeBody = () => {
       }
 
       const handleEventCardClick = () => {
-        if (isAdmin || isLive) {
+        if (isAdmin || isLive || !isScheduled) {
           router.push(`/event?id=${item.id}` as any);
         } else {
           Alert.alert("Event not live", "This event is not live yet.");
